@@ -22,6 +22,7 @@ import org.springframework.util.StreamUtils;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Import({TestConfig.class, MqttConfiguration.class})
@@ -65,6 +66,28 @@ class EventMessagePublisherApplicationTests {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		StreamUtils.copy(new ClassPathResource("exampleEvent.json").getInputStream(), out);
 		String expected = out.toString();
+
+		await().until(() -> receivedMessage.get() != null);
+		assertEquals(expected, receivedMessage.get());
+	}
+
+	@Test
+	void testDurableSubscriber() throws MqttException {
+		// Subscribe to testcontainer ActiveMQ topic
+		AtomicReference<String> receivedMessage = new AtomicReference<>();
+		mqttClient.subscribe(publishTopic, (topic, msg) -> receivedMessage.set(new String(msg.getPayload())));
+		restTemplate.getForEntity("http://localhost:"+  port + "/publish", Void.class);
+
+		await().until(() -> receivedMessage.get() != null);
+		assertFalse(receivedMessage.get().isEmpty());
+
+		// Save received message and disconnect
+		String expected = receivedMessage.get();
+		receivedMessage.set(null);
+
+		mqttClient.disconnect();
+		restTemplate.getForEntity("http://localhost:"+  port + "/publish", Void.class); // Publish another message, while subscriber is disconnected
+		mqttClient.connect();
 
 		await().until(() -> receivedMessage.get() != null);
 		assertEquals(expected, receivedMessage.get());
