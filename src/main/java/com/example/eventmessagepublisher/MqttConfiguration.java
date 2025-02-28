@@ -31,7 +31,7 @@ public class MqttConfiguration implements InitializingBean {
     private String topic;
 
     @Bean
-    public MqttPahoClientFactory mqttClient() {
+    public MqttPahoClientFactory mqttClientFactory() {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
         options.setServerURIs(new String[] {brokerUrl});
