@@ -1,0 +1,15 @@
+{
+  "id": "1",
+  "name": "Example Event",
+  "description": "This is an example event",
+  "location": "Example Location",
+  "dateTime": "2025-02-28T00:00:00Z",
+  "someSubObject": {
+    "id": "1",
+    "name": "Example Sub Object"
+  },
+  "user": {
+    "id": "1",
+    "name": "Example User"
+  }
+}
