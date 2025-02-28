@@ -2,8 +2,11 @@ package com.example.eventmessagepublisher;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.awaitility.Awaitility;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.junit.jupiter.api.Test;
@@ -58,10 +61,12 @@ class EventMessagePublisherApplicationTests {
 
 	@Test
 	void testPublishMessage() throws MqttException, IOException {
+		String url = "http://localhost:" + port + "/publish";
+
 		// Subscribe to testcontainer ActiveMQ topic
 		AtomicReference<String> receivedMessage = new AtomicReference<>();
 		mqttClient.subscribe(publishTopic, (topic, msg) -> receivedMessage.set(new String(msg.getPayload())));
-		restTemplate.getForEntity("http://localhost:"+  port + "/publish", Void.class);
+		restTemplate.getForEntity(url, Void.class);
 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		StreamUtils.copy(new ClassPathResource("exampleEvent.json").getInputStream(), out);
@@ -72,25 +77,36 @@ class EventMessagePublisherApplicationTests {
 	}
 
 	@Test
-	void testDurableSubscriber() throws MqttException {
-		// Subscribe to testcontainer ActiveMQ topic
+	void testDurableSubscriber() throws Exception {
+		String url = "http://localhost:" + port + "/publish";
 		AtomicReference<String> receivedMessage = new AtomicReference<>();
-		mqttClient.subscribe(publishTopic, (topic, msg) -> receivedMessage.set(new String(msg.getPayload())));
-		restTemplate.getForEntity("http://localhost:"+  port + "/publish", Void.class);
 
-		await().until(() -> receivedMessage.get() != null);
+		// Step 1: Subscribe and receive messages
+		mqttClient.subscribe(publishTopic, (topic, msg) ->
+			receivedMessage.set(new String(msg.getPayload(), StandardCharsets.UTF_8)));
+
+		// Step 2: Publish first message (while subscriber is connected)
+		restTemplate.getForEntity(url, Void.class);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> receivedMessage.get() != null);
 		assertFalse(receivedMessage.get().isEmpty());
 
-		// Save received message and disconnect
-		String expected = receivedMessage.get();
+		// Step 3: Save received message and disconnect
+		String expectedMessage = receivedMessage.get();
 		receivedMessage.set(null);
 
 		mqttClient.disconnect();
-		restTemplate.getForEntity("http://localhost:"+  port + "/publish", Void.class); // Publish another message, while subscriber is disconnected
-		mqttClient.connect();
 
-		await().until(() -> receivedMessage.get() != null);
-		assertEquals(expected, receivedMessage.get());
+		// Step 4: Publish another message while subscriber is disconnected
+		restTemplate.getForEntity(url, Void.class);
+
+		// Step 5: Reconnect and verify the message is received
+		mqttClient.connect();
+		mqttClient.subscribe(publishTopic, (topic, msg) ->
+				receivedMessage.set(new String(msg.getPayload(), StandardCharsets.UTF_8)));
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> receivedMessage.get() != null);
+		assertEquals(expectedMessage, receivedMessage.get());
 	}
 
 }
