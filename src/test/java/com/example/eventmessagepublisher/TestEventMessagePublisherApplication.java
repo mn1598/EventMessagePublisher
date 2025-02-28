@@ -1,4 +1,4 @@
-package com.example.EventMessagePublisher;
+package com.example.eventmessagepublisher;
 
 import org.springframework.boot.SpringApplication;
 

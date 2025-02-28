@@ -1,4 +1,4 @@
-package com.example.EventMessagePublisher;
+package com.example.eventmessagepublisher;
 
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -25,7 +25,7 @@ public class MqttConfiguration implements InitializingBean {
     private String brokerPassword;
 
     @Bean
-    public MqttPahoClientFactory mqttClient() throws MqttException {
+    public MqttPahoClientFactory mqttClient() {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
         options.setServerURIs(new String[] {brokerUrl});

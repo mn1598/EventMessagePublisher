@@ -1,4 +1,4 @@
-package com.example.EventMessagePublisher;
+package com.example.eventmessagepublisher;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -14,7 +14,7 @@ public class EventMessagePublisherApplication {
 	private String topic;
 
 	public void sendEventMessage() {
-		System.out.println("Sending event message to topic: " + topic);
+        log.info("Sending event message to topic: {}", topic);
 	}
 
 	public static void main(String[] args) {
